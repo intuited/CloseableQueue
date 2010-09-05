@@ -5,7 +5,15 @@ These are subclasses of the Queue class, and implement the close() method
 """
 from Queue import Queue, Empty, Full, _time
 
+class Closed(Exception):
+    """Exception raised by CloseableQueue.put/get on a closed queue."""
+    pass
+
 class CloseableQueue(Queue):
+    def __init__(self, *args, **kwargs):
+        Queue.__init__(*args, **kwargs)
+        from Queue import threading
+
     def close(now=False):
         """Marks the queue closed.
 
@@ -29,6 +37,9 @@ class CloseableQueue(Queue):
         When called by the sole producer, normally with now=False,
           it indicates that production has stopped, and consumers should cease.
 
+        Additionally, any currently blocked `get`s or `put`s will be unblocked,
+          and will raise Closed exceptions.
+
         Use by one of a number of producers or consumers
           is not normally meaningful.
         """
@@ -51,16 +62,16 @@ class CloseableQueue(Queue):
         """
         pass
 
-    def put(self, item, block=True, timeout=None):
+    def put(self, item, block=True, timeout=None, last=False):
         """Put an item into the queue.
 
-        If optional args 'block' is true and 'timeout' is None (the default),
-        block if necessary until a free slot is available. If 'timeout' is
-        a positive number, it blocks at most 'timeout' seconds and raises
-        the Full exception if no free slot was available within that time.
-        Otherwise ('block' is false), put an item on the queue if a free slot
-        is immediately available, else raise the Full exception ('timeout'
-        is ignored in that case).
+        Works as `Queue.Queue.put` but with these differences:
+
+        If the queue is closed, raises Closed.
+
+        If `last` is True, the item being put, if successfully put,
+          will mark the end of the Queue.  When a consumer `get`s that item,
+          the queue will be marked closed.
         """
         self.not_full.acquire()
         try:
@@ -89,13 +100,8 @@ class CloseableQueue(Queue):
     def get(self, block=True, timeout=None):
         """Remove and return an item from the queue.
 
-        If optional args 'block' is true and 'timeout' is None (the default),
-        block if necessary until an item is available. If 'timeout' is
-        a positive number, it blocks at most 'timeout' seconds and raises
-        the Empty exception if no item was available within that time.
-        Otherwise ('block' is false), return an item if one is immediately
-        available, else raise the Empty exception ('timeout' is ignored
-        in that case).
+        Works as does `Queue.Queue.get` except that
+          a `get` on a closed queue will raise Closed.
         """
         self.not_empty.acquire()
         try:
