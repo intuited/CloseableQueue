@@ -11,8 +11,7 @@ class Closed(Exception):
 
 class CloseableQueue(Queue):
     def __init__(self, *args, **kwargs):
-        Queue.__init__(*args, **kwargs)
-        from Queue import threading
+        Queue.__init__(self, *args, **kwargs)
 
     def close(now=False):
         """Marks the queue closed.

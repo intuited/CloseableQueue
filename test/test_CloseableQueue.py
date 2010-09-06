@@ -4,8 +4,9 @@ These tests build on the unit tests provided for the Queue module.
 
 That module's test code should be included in the file `test_queue.py`.
 """
-from test_queue import BaseQueueTest, FailingQueue, FailingQueueTest
-from CloseableQueue import CloseableQueue
+from test_queue import BlockingTestMixin, BaseQueueTest
+from test_queue import FailingQueue, FailingQueueTest
+from CloseableQueue import CloseableQueue, Closed
 import unittest
 
 # Because the method queue_test.BaseQueueTest.simple_queue_test
@@ -57,10 +58,99 @@ class FailingCloseableQueueTest(FailingQueueTest):
         self.failing_queue_test(q)
 
 
+def put_iterable(q, it, putargs={}, close=-1, closeargs=(), last=-1):
+    """Puts the iterable to the queue `q`.
+
+    `last` and `close`, as positive integers,
+        indicate the number of puts before, respectively,
+        the `last` parameter is passed to `put`
+        or a `close` is called after `put`.
+    """
+    for i in iter(it):
+        ret = q.put(i, last=last==0, **putargs)
+        if close == 0:
+            q.close(*closeargs)
+        close -= 1
+        last -= 1
+    return ret
+def get_iterable(q, getargs={}, count=-1):
+    while True:
+        if count == 0:
+            break
+        yield q.get(**getargs)
+        count -= 1
+
+class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
+    type2test = CloseableQueue
+
+
+    def test_take_until_before_last(self):
+        """Close the queue with `last` and then get its stored values."""
+        q = self.type2test()
+        # To ensure that the last is actually put before we start the get,
+        #   we do this manually, without threads.
+        q.put(1)
+        q.put(2)
+        q.put(3, last=True)
+        result = get_iterable(q, {'block': False}, 3)
+        self.assertEqual((1, 2, 3), tuple(result))
+
+    def test_take_until_last(self):
+        """`Get` after a last `put`."""
+        q = self.type2test()
+        self.do_exceptional_blocking_test(
+            get_iterable, (q, {'timeout': 2}, 4),
+            put_iterable, (q, (1, 2, 3), {}, -1, (), 3),
+            Closed)
+
+    def test_put_after_last(self):
+        q = self.type2test()
+        q.put(1, last=True)
+        try:
+            q.put(2)
+        except Closed:
+            return
+        else:
+            self.fail('Closed exception not thrown.')
+
+    def test_get_after_close_on_empty_queue(self):
+        """Test that `get` calls made after a `close` raise `Closed`."""
+        q = self.type2test()
+        q.close()
+        try:
+            q.get(timeout=0.1)
+        except Closed:
+            return
+        else:
+            self.fail('Closed exception not thrown.')
+
+    def test_get_after_close_on_nonempty_queue(self):
+        q = self.type2test()
+        q.put(1)
+        q.close()
+        self.assertEqual(1, q.get(block=False))
+
+    def test_put_after_close(self):
+        q = self.type2test()
+        q.close()
+        try:
+            q.put(timeout=0.1)
+        except Exception as e:
+            self.assertEqual(Closed, type(e))
+        else:
+            self.fail('Closed exception not thrown.')
+
+    def test_close_after_get_on_empty_queue(self):
+        """Test that calling `close` raises `Closed` in a blocked thread."""
+        q = self.type2test()
+        self.do_exceptional_blocking_test(q.get, (True, 2), q.close, (),
+                                          Closed)
+
 def make_test_suite():
     from unittest import TestSuite, defaultTestLoader
     load = defaultTestLoader.loadTestsFromTestCase
-    testcases = (RegressionCloseableQueueTest, FailingCloseableQueue)
+    testcases = (RegressionCloseableQueueTest, FailingCloseableQueue,
+                 CloseableQueueTest)
     return TestSuite(load(case) for case in testcases)
 
 def test_main():
