@@ -146,6 +146,13 @@ class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
         self.do_exceptional_blocking_test(q.get, (True, 2), q.close, (),
                                           Closed)
 
+    def test_close_after_put_on_full_queue(self):
+        """This should also cause a release with a `Closed` exception."""
+        q = self.type2test(1)
+        q.put(1)
+        self.do_exceptional_blocking_test(q.put, (2, True, 0.4),
+                                          q.close, (), Closed)
+
 def make_test_suite():
     from unittest import TestSuite, defaultTestLoader
     load = defaultTestLoader.loadTestsFromTestCase
