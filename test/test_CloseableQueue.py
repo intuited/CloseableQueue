@@ -83,6 +83,10 @@ def get_iterable(q, getargs={}, count=-1):
 class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
     type2test = CloseableQueue
 
+    def setUp(self):
+        import threading
+        self.cum = 0
+        self.cumlock = threading.Lock()
 
     def test_take_until_before_last(self):
         """Close the queue with `last` and then get its stored values."""
@@ -152,6 +156,44 @@ class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
         q.put(1)
         self.do_exceptional_blocking_test(q.put, (2, True, 0.4),
                                           q.close, (), Closed)
+
+    def worker(self, q):
+        while True:
+            x = q.get()
+            if x is None:
+                q.task_done()
+                return
+            with self.cumlock:
+                self.cum += x
+            q.task_done()
+
+    def test_join_after_close(self):
+        """Based on `test_queue.BaseQueueTest.queue_join_test`."""
+        import threading
+        q = self.type2test()
+        self.cum = 0
+        for i in (0,1):
+            threading.Thread(target=self.worker, args=(q,)).start()
+        for i in xrange(100):
+            q.put(i)
+        q.close()
+        q.join()
+        self.assertEquals(self.cum, sum(range(100)),
+                          "q.join() did not block until all tasks were done")
+        try:
+            for i in (0,1):
+                q.put(None)         # instruct the threads to close
+        except Exception as e:
+            self.assertEqual(Closed, type(e), "Non-Closed exception raised.")
+        else:
+            self.fail('Closed exception not raised.')
+        q.join()                # verify that you can join twice
+        try:
+            q.task_done()
+        except ValueError:
+            pass
+        else:
+            self.fail("Did not detect task count going negative")
 
 def make_test_suite():
     from unittest import TestSuite, defaultTestLoader
