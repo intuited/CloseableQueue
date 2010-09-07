@@ -14,33 +14,20 @@ class CloseableQueue(Queue):
         Queue.__init__(self, *args, **kwargs)
 
     def close(now=False):
-        """Marks the queue closed.
+        """Close the queue.
 
-        If `now` is True, the queue is marked as immediately closed
-          and any further `get`s will raise Empty exceptions for the consumer
-          and Full exceptions for the producer.
+        Normally this will prevent further `put`s, and only allow `get`s
+          until the contents are depleted.
 
-        If `now` is False, no further contents will be accepted.
-        `put` attempts will raise Full exceptions;
-          `get`s will work normally until the current contents are exhausted.
-        Once the queue is empty,
-          Empty exceptions will be raised unconditionally on `get`.
+        However, if `now` is True, both `put`s and `get`s will be prevented.
 
-        The close method may usefully be called
-          by a sole consumer or by a sole producer.
+        `put`s and `get`s which are prevented raise `Closed`.
 
-        When called by the sole consumer, it indicates immediately to producers
-          that they should stop producing.
-        This will normally be done with now=True.
+        Calling `close` will also cause `Closed` exceptions to be raised
+          in blocked `get`s or `put`s as though they had just been called.
 
-        When called by the sole producer, normally with now=False,
-          it indicates that production has stopped, and consumers should cease.
-
-        Additionally, any currently blocked `get`s or `put`s will be unblocked,
-          and will raise Closed exceptions.
-
-        Use by one of a number of producers or consumers
-          is not normally meaningful.
+        Normally it is only useful to call this method
+          from a thread which is the sole producer or sole consumer of a queue.
         """
         pass
 
