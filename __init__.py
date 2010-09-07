@@ -13,13 +13,11 @@ class CloseableQueue(Queue):
     def __init__(self, *args, **kwargs):
         Queue.__init__(self, *args, **kwargs)
 
-    def close(now=False):
+    def close(self):
         """Close the queue.
 
-        Normally this will prevent further `put`s, and only allow `get`s
+        This will prevent further `put`s, and only allow `get`s
           until the contents are depleted.
-
-        However, if `now` is True, both `put`s and `get`s will be prevented.
 
         `put`s and `get`s which are prevented raise `Closed`.
 
@@ -27,25 +25,12 @@ class CloseableQueue(Queue):
           in blocked `get`s or `put`s as though they had just been called.
 
         Normally it is only useful to call this method
-          from a thread which is the sole producer or sole consumer of a queue.
+          from a thread which is the sole producer or sole consumer.
         """
         pass
 
-    def closing(now=False):
-        """Returns a context manager which calls `close` on the queue.
-
-        This allows code like
-            >>> with CloseableQueue().closing(True) as q:
-            ...     producers = [Thread(target=produce, args=(q,)).start()
-            ...                  for i in range(4)]
-            ...     while True:
-            ...         consumed = q.get()
-            ...         if consumed == ohnoes:
-            ...             raise OhNoesError('Oh Noes!  The value {0} was produced!'
-            ...                               .format(consumed))
-
-        to properly close the queue from the consumer end.
-        """
+    def closing(self):
+        """Returns a context manager which calls `close` on the queue."""
         pass
 
     def put(self, item, block=True, timeout=None, last=False):

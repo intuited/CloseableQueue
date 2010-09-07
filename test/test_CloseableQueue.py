@@ -58,7 +58,7 @@ class FailingCloseableQueueTest(FailingQueueTest):
         self.failing_queue_test(q)
 
 
-def put_iterable(q, it, putargs={}, close=-1, closeargs=(), last=-1):
+def put_iterable(q, it, putargs={}, close=-1, last=-1):
     """Puts the iterable to the queue `q`.
 
     `last` and `close`, as positive integers,
@@ -100,7 +100,7 @@ class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
         q = self.type2test()
         self.do_exceptional_blocking_test(
             get_iterable, (q, {'timeout': 2}, 4),
-            put_iterable, (q, (1, 2, 3), {}, -1, (), 3),
+            put_iterable, (q, (1, 2, 3), {}, -1, 3),
             Closed)
 
     def test_put_after_last(self):
