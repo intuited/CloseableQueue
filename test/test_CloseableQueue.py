@@ -108,10 +108,10 @@ class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
         q.put(1, last=True)
         try:
             q.put(2)
-        except Closed:
-            return
+        except Exception as e:
+            self.assertEqual(Closed, type(e), "Non-Closed exception raised.")
         else:
-            self.fail('Closed exception not thrown.')
+            self.fail('Closed exception not raised.')
 
     def test_get_after_close_on_empty_queue(self):
         """Test that `get` calls made after a `close` raise `Closed`."""
@@ -119,10 +119,10 @@ class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
         q.close()
         try:
             q.get(timeout=0.1)
-        except Closed:
-            return
+        except Exception as e:
+            self.assertEqual(Closed, type(e), "Non-Closed exception raised.")
         else:
-            self.fail('Closed exception not thrown.')
+            self.fail('Closed exception not raised.')
 
     def test_get_after_close_on_nonempty_queue(self):
         q = self.type2test()
@@ -136,9 +136,9 @@ class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
         try:
             q.put(timeout=0.1)
         except Exception as e:
-            self.assertEqual(Closed, type(e))
+            self.assertEqual(Closed, type(e), "Non-Closed exception raised.")
         else:
-            self.fail('Closed exception not thrown.')
+            self.fail('Closed exception not raised.')
 
     def test_close_after_get_on_empty_queue(self):
         """Test that calling `close` raises `Closed` in a blocked thread."""
