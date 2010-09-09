@@ -84,6 +84,7 @@ class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
     type2test = CloseableQueue
 
     def setUp(self):
+        # set up cumulative counts for `test_join_after_close`
         import threading
         self.cum = 0
         self.cumlock = threading.Lock()
