@@ -139,7 +139,7 @@ class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
         q = self.type2test()
         q.close()
         try:
-            q.put(timeout=0.1)
+            q.put(1, timeout=0.1)
         except Closed:
             pass
         else:
