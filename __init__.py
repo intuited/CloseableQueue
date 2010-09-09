@@ -1,7 +1,19 @@
-"""Defines the CloseableQueue and IterableQueue classes.
+"""Defines the CloseableQueue class.
 
-These are subclasses of the Queue class, and implement the `close` method
-  and derived functionality.
+This class provides a means to permanently close a queue.
+
+Attempts to `put` to a closed queue will raise the `Closed` exception.
+
+Attempts to `get` from an *empty* closed queue will raise the same.
+
+Blocked `put`s and `get`s on a queue which is subsequently closed
+  will also raise the `Closed` exception under the same circumstances.
+
+A queue can be closed either by calling its `close` method
+  or by passing `last=True` to an invocation of `put`.
+
+If the latter is done, the entire operation is performed atomically;
+  the close will only take place if the put succeeds.
 """
 from Queue import Queue, Empty, Full, _time
 
