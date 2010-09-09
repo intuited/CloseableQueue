@@ -102,13 +102,30 @@ class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
         result = get_tuple(q, {'block': False}, 3)
         self.assertEqual((1, 2, 3), result)
 
-    def test_take_until_last(self):
-        """`Get` after a last `put`."""
+    def test_take_until_after_last(self):
+        """`Get` after a last `put`.
+        
+        Since the second `get` doesn't block, this should verify
+           (as well as possible) that
+          `put(last=True)` closes the queue atomically.
+
+        In practice this is mostly useful as a regression test, since
+          it's pretty obvious by reading `put` that it's working atomically.
+        """
+        def get_then_get(q):
+            """Serves to verify the atomicity of `put(last=True)`."""
+            q.get(timeout=2)
+            q.get(block=False)
+
         q = self.type2test()
-        self.do_exceptional_blocking_test(
-            get_iterable, (q, {'timeout': 2}, 4),
-            put_iterable, (q, (1, 2, 3), {}, -1, 3),
-            Closed)
+        try:
+            self.do_exceptional_blocking_test(get_then_get, (q,),
+                                              q.put, (1, False, None, True),
+                                              Closed)
+        except Closed:
+            pass
+        else:
+            self.fail('Closed exception not raised.')
 
     def test_put_after_last(self):
         q = self.type2test()
