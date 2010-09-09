@@ -148,15 +148,25 @@ class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
     def test_close_after_get_on_empty_queue(self):
         """Test that calling `close` raises `Closed` in a blocked thread."""
         q = self.type2test()
-        self.do_exceptional_blocking_test(q.get, (True, 2), q.close, (),
-                                          Closed)
+        try:
+            self.do_exceptional_blocking_test(q.get, (True, 2), q.close, (),
+                                              Closed)
+        except Closed:
+            pass
+        else:
+            self.fail('Closed exception not raised.')
 
     def test_close_after_put_on_full_queue(self):
         """This should also cause a release with a `Closed` exception."""
         q = self.type2test(1)
         q.put(1)
-        self.do_exceptional_blocking_test(q.put, (2, True, 0.4),
-                                          q.close, (), Closed)
+        try:
+            self.do_exceptional_blocking_test(q.put, (2, True, 0.4),
+                                              q.close, (), Closed)
+        except Closed:
+            pass
+        else:
+            self.fail('Closed exception not raised.')
 
     def worker(self, q):
         """Worker based on `test_queue.BaseQueueTest.worker`.
