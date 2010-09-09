@@ -79,6 +79,8 @@ def get_iterable(q, getargs={}, count=-1):
             break
         yield q.get(**getargs)
         count -= 1
+def get_tuple(q, getargs={}, count=-1):
+    return tuple(get_iterable(q, getargs, count))
 
 class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
     type2test = CloseableQueue
@@ -97,8 +99,8 @@ class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
         q.put(1)
         q.put(2)
         q.put(3, last=True)
-        result = get_iterable(q, {'block': False}, 3)
-        self.assertEqual((1, 2, 3), tuple(result))
+        result = get_tuple(q, {'block': False}, 3)
+        self.assertEqual((1, 2, 3), result)
 
     def test_take_until_last(self):
         """`Get` after a last `put`."""
