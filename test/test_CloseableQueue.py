@@ -112,8 +112,8 @@ class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
         q.put(1, last=True)
         try:
             q.put(2)
-        except Exception as e:
-            self.assertEqual(Closed, type(e), "Non-Closed exception raised.")
+        except Closed:
+            pass
         else:
             self.fail('Closed exception not raised.')
 
@@ -123,8 +123,8 @@ class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
         q.close()
         try:
             q.get(timeout=0.1)
-        except Exception as e:
-            self.assertEqual(Closed, type(e), "Non-Closed exception raised.")
+        except Closed:
+            pass
         else:
             self.fail('Closed exception not raised.')
 
@@ -139,8 +139,8 @@ class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
         q.close()
         try:
             q.put(timeout=0.1)
-        except Exception as e:
-            self.assertEqual(Closed, type(e), "Non-Closed exception raised.")
+        except Closed:
+            pass
         else:
             self.fail('Closed exception not raised.')
 
@@ -183,8 +183,8 @@ class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
         try:
             for i in (0,1):
                 q.put(None)         # instruct the threads to close
-        except Exception as e:
-            self.assertEqual(Closed, type(e), "Non-Closed exception raised.")
+        except Closed:
+            pass
         else:
             self.fail('Closed exception not raised.')
         q.join()                # verify that you can join twice
