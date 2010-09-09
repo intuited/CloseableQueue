@@ -1,6 +1,6 @@
 """Defines the CloseableQueue and IterableQueue classes.
 
-These are subclasses of the Queue class, and implement the close() method
+These are subclasses of the Queue class, and implement the `close` method
   and derived functionality.
 """
 from Queue import Queue, Empty, Full, _time
@@ -12,6 +12,8 @@ class Closed(Exception):
 class CloseableQueue(Queue):
     def __init__(self, *args, **kwargs):
         Queue.__init__(self, *args, **kwargs)
+        assert not hasattr(self, '_closed')
+        self._closed = False
 
     def close(self):
         """Close the queue.
@@ -27,7 +29,25 @@ class CloseableQueue(Queue):
         Normally it is only useful to call this method
           from a thread which is the sole producer or sole consumer.
         """
-        pass
+        self.mutex.acquire()
+        try:
+            if not self._closed:
+                self._closed = True
+                self.not_empty.notify_all()
+                self.not_full.notify_all()
+        finally:
+            self.mutex.release()
+
+    def closed(self):
+        """True iff the queue is closed.  Unreliable like `empty` and `full`."""
+        # Probably not necessary to use a protected section here,
+        #   but better safe than bug-ridden.
+        # This also leaves the door open
+        #   for more complex implementations of `_closed` as a property.
+        self.mutex.acquire()
+        n = self._closed
+        self.mutex.release()
+        return n
 
     def closing(self):
         """Returns a context manager which calls `close` on the queue."""
@@ -36,35 +56,44 @@ class CloseableQueue(Queue):
     def put(self, item, block=True, timeout=None, last=False):
         """Put an item into the queue.
 
-        Works as `Queue.Queue.put` but with these differences:
+        Works as does `Queue.Queue.put`, but with these differences:
 
         If the queue is closed, raises Closed.
 
-        If `last` is True, the item being put, if successfully put,
-          will mark the end of the Queue.  When a consumer `get`s that item,
-          the queue will be marked closed.
+        If `last` is True and the put succeeds,
+          the queue will be atomically closed.
+
+        Also raises `Closed` in the event that the queue is closed
+          while the `put` is blocked.
         """
         self.not_full.acquire()
         try:
             if self.maxsize > 0:
                 if not block:
-                    if self._qsize() == self.maxsize:
+                    if self._qsize() == self.maxsize and not self._closed:
                         raise Full
                 elif timeout is None:
-                    while self._qsize() == self.maxsize:
+                    while self._qsize() == self.maxsize and not self._closed:
                         self.not_full.wait()
                 elif timeout < 0:
                     raise ValueError("'timeout' must be a positive number")
                 else:
                     endtime = _time() + timeout
-                    while self._qsize() == self.maxsize:
+                    while self._qsize() == self.maxsize and not self._closed:
                         remaining = endtime - _time()
                         if remaining <= 0.0:
                             raise Full
                         self.not_full.wait(remaining)
+            if self._closed:
+                raise Closed
             self._put(item)
             self.unfinished_tasks += 1
-            self.not_empty.notify()
+            if last:
+                self._closed = True
+                self.not_empty.notify_all()
+                self.not_full.notify_all()
+            else:
+                self.not_empty.notify()
         finally:
             self.not_full.release()
 
@@ -72,25 +101,30 @@ class CloseableQueue(Queue):
         """Remove and return an item from the queue.
 
         Works as does `Queue.Queue.get` except that
-          a `get` on a closed queue will raise Closed.
+          a `get` on a closed queue will raise `Closed`.
+
+        Similarly, a blocked `get` will raise `Closed`
+          if the queue is closed during the block.
         """
         self.not_empty.acquire()
         try:
             if not block:
-                if not self._qsize():
+                if not self._qsize() and not self._closed:
                     raise Empty
             elif timeout is None:
-                while not self._qsize():
+                while not self._qsize() and not self._closed:
                     self.not_empty.wait()
             elif timeout < 0:
                 raise ValueError("'timeout' must be a positive number")
             else:
                 endtime = _time() + timeout
-                while not self._qsize():
+                while not self._qsize() and not self._closed:
                     remaining = endtime - _time()
                     if remaining <= 0.0:
                         raise Empty
                     self.not_empty.wait(remaining)
+            if self._closed and not self._qsize():
+                raise Closed
             item = self._get()
             self.not_full.notify()
             return item
