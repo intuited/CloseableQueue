@@ -159,14 +159,21 @@ class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
                                           q.close, (), Closed)
 
     def worker(self, q):
-        while True:
-            x = q.get()
-            if x is None:
+        """Worker based on `test_queue.BaseQueueTest.worker`.
+
+        Only used for `test_join_after_close`.
+        """
+        try:
+            while True:
+                x = q.get()
+                if x is None:
+                    q.task_done()
+                    return
+                with self.cumlock:
+                    self.cum += x
                 q.task_done()
-                return
-            with self.cumlock:
-                self.cum += x
-            q.task_done()
+        except Closed:
+            pass
 
     def test_join_after_close(self):
         """Based on `test_queue.BaseQueueTest.queue_join_test`."""
