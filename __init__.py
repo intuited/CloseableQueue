@@ -49,10 +49,6 @@ class CloseableQueue(Queue):
         self.mutex.release()
         return n
 
-    def closing(self):
-        """Returns a context manager which calls `close` on the queue."""
-        pass
-
     def put(self, item, block=True, timeout=None, last=False):
         """Put an item into the queue.
 
