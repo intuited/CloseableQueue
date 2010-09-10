@@ -104,7 +104,7 @@ class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
 
     def test_take_until_after_last(self):
         """`Get` after a last `put`.
-        
+
         Since the second `get` doesn't block, this should verify
            (as well as possible) that
           `put(last=True)` closes the queue atomically.
@@ -259,7 +259,7 @@ class QueueIterationTest(unittest.TestCase, BlockingTestMixin):
             else:
                 self.fail('Closed exception not raised.')
         return result
-        
+
     def test_empty_iterable(self):
         self.do_iterable_test(())
 
