@@ -1,14 +1,15 @@
 `CloseableQueue`
 ================
 
-The `CloseableQueue` module includes the `CloseableQueue` class,
+The `CloseableQueue` module includes the `Closeable*Queue` classes
   as well as the `Closed` exception and some utility functions.
 
 
-The `CloseableQueue` class
---------------------------
+The `Closeable*Queue` classes
+-----------------------------
 
-The `CloseableQueue` class provides a means to permanently close a queue.
+The `CloseableQueue` class adds to `Queue.Queue`
+  the means to permanently close a queue.
 
 This is intended to provide queue support for functionality
   that would otherwise be implemented through the use of sentinel values
@@ -16,10 +17,31 @@ This is intended to provide queue support for functionality
 Such workarounds can be particularly awkward
   in the case of multi-consumer queues.
 
-The CloseableQueue class provides both a `close` method
+`CloseableQueue` class provides both a `close` method
   and an extra parameter, `last`, to its `put` method.
 
+`CloseableLifoQueue` and `CloseablePriorityQueue` are similar classes
+  which subclass Queue.LifoQueue and Queue.PriorityQueue respectively.
+
 Further details are available in the docstrings of the class and its methods.
+
+
+`CloseableQueueFactory`
+-----------------------
+
+This factory function is used to create the `Closeable*Queue` classes.
+
+This approach is used instead of a mixin class
+  because the Queue module's classes are old-style.
+
+It should be possible to apply this function to other `Queue`-derived classes,
+  as long as they have not overridden `get` or `put`
+  (or defined `close` or `closed`).
+
+For example:
+
+    >>> CloseableFooQueue = CloseableQueueFactory(FooQueue,
+    ...                                           "CloseableFooQueue")
 
 
 The `Closed` exception class
@@ -37,9 +59,9 @@ Iteration utility functions
 Transformation of iterables to and from queues is made convenient via the
   `enqueue` and `dequeue` functions.
 
-The `EnqueueThread` provides a further layer of convenience.
+The `EnqueueThread` function provides a further layer of convenience.
 
-Although designed to work with Closeable queues,
+Although designed to work with closeable queues,
   these functions can also be meaningfully applied to other Queues.
 
 See their docstrings for more information.
@@ -54,10 +76,15 @@ The CloseableQueue test suite is based on, and reuses much of the code from,
 Regression tests are performed on the CloseableQueue class,
   in addition to tests of the closing functionality.
 
-Although reasonably thorough, the author is by no means an expert in the area
-  of concurrency; review by more experienced coders is quite welcome.
+Although the tests are reasonably thorough,
+  the author is by no means an expert in the area of concurrency;
+  review by more experienced developers is quite welcome.
 
 The test suite may provide guidance in the form of simplistic usage examples.
+
+Some attempt has been made to write code which will work on older Pythons,
+  however testing has only been performed on Python 2.6,
+  and the author has little experience with older versions.
 
 
 License

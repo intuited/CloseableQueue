@@ -149,6 +149,10 @@ def CloseableQueueFactory(base=_Queue.Queue, name="CloseableQueue"):
     return CloseableQueue
 
 CloseableQueue = CloseableQueueFactory()
+CloseableLifoQueue = CloseableQueueFactory(_Queue.LifoQueue,
+                                           "CloseableLifoQueue")
+CloseablePriorityQueue = CloseableQueueFactory(_Queue.PriorityQueue,
+                                               "CloseablePriorityQueue")
 
 def dequeue(q, getargs={}, on_empty='stop'):
     """Generates values from the queue `q`.

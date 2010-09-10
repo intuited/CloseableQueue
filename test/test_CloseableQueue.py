@@ -7,6 +7,7 @@ That module's test code should be included in the file `test_queue.py`.
 from test_queue import BlockingTestMixin, BaseQueueTest
 from test_queue import FailingQueue, FailingQueueTest
 from CloseableQueue import CloseableQueue, Closed
+from CloseableQueue import CloseableLifoQueue, CloseablePriorityQueue
 import unittest
 
 # Because the method queue_test.BaseQueueTest.simple_queue_test
@@ -33,6 +34,12 @@ class RenamingBaseQueueTest(BaseQueueTest):
 
 class RegressionCloseableQueueTest(RenamingBaseQueueTest):
     type2test = CloseableQueue
+
+class RegressionCloseableLifoQueueTest(RenamingBaseQueueTest):
+    type2test = CloseableLifoQueue
+
+class RegressionCloseablePriorityQueueTest(RenamingBaseQueueTest):
+    type2test = CloseablePriorityQueue
 
 
 # The next two classes implement a different regression test,
@@ -256,8 +263,16 @@ class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
         else:
             self.fail("Did not detect task count going negative")
 
+class CloseableLifoQueueTest(CloseableQueueTest):
+    type2test = CloseableLifoQueue
+    tuple_sort = lambda self, it: tuple(reversed(it))
+    
+class CloseablePriorityQueueTest(CloseableQueueTest):
+    type2test = CloseablePriorityQueue
+    tuple_sort = lambda self, it: tuple(sorted(it))
 
-class QueueIterationTest(unittest.TestCase, BlockingTestMixin):
+
+class CloseableQueueIterationTest(unittest.TestCase, BlockingTestMixin):
     """Tests the `enqueue` and `dequeue` functions."""
     type2test = CloseableQueue
     tuple_sort = tuple
@@ -271,9 +286,9 @@ class QueueIterationTest(unittest.TestCase, BlockingTestMixin):
                          getargs={'timeout': 0.2}, putargs={'timeout': 0.2},
                          on_empty='raise', join=False, close=True):
         """Verifies that the iterable is the same after being en/dequeued."""
-        from CloseableQueue import enqueue, dequeue, CloseableQueue
+        from CloseableQueue import enqueue, dequeue
         if q is None:
-            q = CloseableQueue()
+            q = self.type2test()
         tup = tuple(it)
         result = self.do_blocking_test(self.dequeue_to_tuple, (q, getargs, on_empty),
                                        enqueue, (it, q, putargs, join, close))
@@ -294,7 +309,7 @@ class QueueIterationTest(unittest.TestCase, BlockingTestMixin):
         self.do_iterable_test((2, 1, 3))
 
     def test_timeout_iterable(self):
-        q = CloseableQueue()
+        q = self.type2test()
         self.do_iterable_test((2, 1, 3), q, on_empty='stop', close=False)
         self.do_iterable_test((6, 4, 5), q, on_empty='stop', close=False)
         self.do_iterable_test((9, 8, 7), q, on_empty='stop', close=True)
@@ -302,18 +317,42 @@ class QueueIterationTest(unittest.TestCase, BlockingTestMixin):
     def test_EnqueueThread(self):
         """Perfunctory test of the EnqueueThread convenience function."""
         from CloseableQueue import EnqueueThread
-        q = CloseableQueue()
+        q = self.type2test()
         result = self.do_blocking_test(self.dequeue_to_tuple, (q, {'timeout': 0.2}),
                                        EnqueueThread, ((3, 1, 2), q))
         self.assertEqual(self.tuple_sort((3, 1, 2)), result)
 
+class CloseableLifoQueueIterationTest(CloseableQueueIterationTest):
+    type2test = CloseableLifoQueue
+    tuple_sort = lambda self, it: tuple(reversed(it))
+    
+class CloseablePriorityQueueIterationTest(CloseableQueueIterationTest):
+    type2test = CloseablePriorityQueue
+    tuple_sort = lambda self, it: tuple(sorted(it))
+
 
 def make_test_suite():
     from unittest import TestSuite, defaultTestLoader
+    from itertools import chain
     load = defaultTestLoader.loadTestsFromTestCase
-    testcases = (RegressionCloseableQueueTest, FailingCloseableQueue,
-                 CloseableQueueTest, QueueIterationTest)
-    return TestSuite(load(case) for case in testcases)
+
+    regression_cases = (RegressionCloseableQueueTest,
+                        RegressionCloseableLifoQueueTest,
+                        RegressionCloseablePriorityQueueTest,
+                        FailingCloseableQueue)
+    regression_suite = TestSuite(load(case) for case in regression_cases)
+
+    closeability_cases = (CloseableQueueTest,
+                          CloseableLifoQueueTest,
+                          CloseablePriorityQueueTest)
+    iteration_cases = (CloseableQueueIterationTest,
+                       CloseableLifoQueueIterationTest,
+                       CloseablePriorityQueueIterationTest)
+    new_functionality_cases = chain(closeability_cases, iteration_cases)
+    new_functionality_suite = TestSuite(load(case)
+                                        for case in new_functionality_cases)
+
+    return TestSuite((regression_suite, new_functionality_suite))
 
 def test_main():
     from unittest import TextTestRunner
