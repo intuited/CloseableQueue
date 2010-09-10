@@ -1,6 +1,9 @@
 `CloseableQueue`
 ================
 
+The `CloseableQueue` module includes the `CloseableQueue` class,
+  as well as the `Closed` exception and some utility functions.
+
 
 The `CloseableQueue` class
 --------------------------
@@ -17,6 +20,27 @@ The CloseableQueue class provides both a `close` method
   and an extra parameter, `last`, to its `put` method.
 
 Further details are available in the docstrings of the class and its methods.
+
+
+The `Closed` exception class
+----------------------------
+
+Both the `get` and `put` methods of a CloseableQueue object
+  may raise `Closed` if called on a closed queue.
+
+Note that `get` will only raise `Closed` if the queue is empty.
+
+
+Iteration utility functions
+---------------------------
+
+Transformation of iterables to and from queues is made convenient via the
+  `enqueue` and `dequeue` functions.
+
+Although designed to work with Closeable queues,
+  these functions can also be meaningfully applied to other Queues.
+
+See their docstrings for more information.
 
 
 Tests

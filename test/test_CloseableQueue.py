@@ -232,11 +232,48 @@ class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
         else:
             self.fail("Did not detect task count going negative")
 
+
+class QueueIterationTest(unittest.TestCase, BlockingTestMixin):
+    """Tests the `enqueue` and `dequeue` functions."""
+    def do_iterable_test(self, it, q=None,
+                         getargs={'timeout': 0.2}, putargs={'timeout': 0.2},
+                         on_empty='raise', join=False, close=True):
+        """Verifies that the iterable is the same after being en/dequeued."""
+        from CloseableQueue import enqueue, dequeue, CloseableQueue
+        if q is None:
+            q = CloseableQueue()
+        tup = tuple(it)
+        def dequeue_to_tuple():
+            return tuple(dequeue(q, getargs, on_empty))
+        result = self.do_blocking_test(dequeue_to_tuple, (),
+                                       enqueue, (it, q, putargs, join, close))
+        self.assertEqual(tup, tuple(result))
+        if close:
+            try:
+                q.get(timeout=0.2)
+            except Closed:
+                pass
+            else:
+                self.fail('Closed exception not raised.')
+        return result
+        
+    def test_empty_iterable(self):
+        self.do_iterable_test(())
+
+    def test_nonempty_iterable(self):
+        self.do_iterable_test((1, 2, 3))
+
+    def test_timeout_iterable(self):
+        q = CloseableQueue()
+        self.do_iterable_test((1, 2, 3), q, on_empty='stop', close=False)
+        self.do_iterable_test((4, 5, 6), q, on_empty='stop', close=False)
+        self.do_iterable_test((7, 8, 9), q, on_empty='stop', close=True)
+
 def make_test_suite():
     from unittest import TestSuite, defaultTestLoader
     load = defaultTestLoader.loadTestsFromTestCase
     testcases = (RegressionCloseableQueueTest, FailingCloseableQueue,
-                 CloseableQueueTest)
+                 CloseableQueueTest, QueueIterationTest)
     return TestSuite(load(case) for case in testcases)
 
 def test_main():

@@ -138,3 +138,59 @@ class CloseableQueue(Queue):
             return item
         finally:
             self.not_empty.release()
+
+def dequeue(q, getargs={}, on_empty='stop'):
+    """Generates values from the queue `q`.
+    
+    This is a fairly flexible function which can also be meaningfully applied
+      to non-closeable queues, by passing a `timeout` in `getargs`.
+
+    The default arguments are suitable for generating an iteration
+      from a queue which is closed after/as the last value is `put` to it.
+
+    To avoid false StopIterations, if a timeout is used with a closeable queue,
+      `on_empty` should be passed as `raise` or some sentinel value.
+
+    `getargs` is a dict which will comprise the keyword arguments to `q.get`.
+
+    `on_empty` determines the response to an `Empty` exception raised by `get`.
+      If 'raise', the `Empty` exception will be raised.
+      If 'stop', the `Empty` exception will be treated as a `Closed` exception.
+      Otherwise, the value passed in `on_empty` will be yielded.
+
+    Note that with the default value of `getargs`,
+      `Empty` exceptions will not occur.
+    """
+    try:
+        while True:
+            yield q.get(**getargs)
+    except Closed:
+        raise StopIteration
+    except Empty:
+        if on_empty == 'raise':
+            raise
+        elif on_empty == 'stop':
+            raise StopIteration
+        else:
+            yield on_empty
+
+def enqueue(it, q, putargs={}, join=False, close=True):
+    """`put`s the successive values of the iterable `it` into `q`.
+
+    The default values will close the queue after the final iterated value.
+    
+    `putargs` is a dict which will comprise the keyword arguments to `q.put`.
+
+    If `close` is true,
+      `q` must support the `close` method, i.e. be a CloseableQueue.
+    This will have the effect of closing the queue after the end of iteration.
+
+    If `join` is true, the queue is joined after the values are put,
+      and after optionally being closed.
+    """
+    for value in iter(it):
+        q.put(value, **putargs)
+    if close:
+        q.close()
+    if join:
+        q.join()
