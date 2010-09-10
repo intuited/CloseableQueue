@@ -15,11 +15,13 @@ import unittest
 # In order to avoid Heisenbugs, we don't create new classes;
 #   we just rename the existing ones during the test.
 def base_queue_class_name(cls):
+    """Come up with the base queue class name by removing "*able"."""
     cls_name = cls.__name__
     return cls_name[cls_name.index('able') + 4:]
 
 class RenamingBaseQueueTest(BaseQueueTest):
     def setUp(self):
+        assert not hasattr(self, '_old_typename')
         self._old_typename = self.type2test.__name__
         self.type2test.__name__ = base_queue_class_name(self.type2test)
         super(RenamingBaseQueueTest, self).setUp()
@@ -33,7 +35,11 @@ class RegressionCloseableQueueTest(RenamingBaseQueueTest):
     type2test = CloseableQueue
 
 
+# The next two classes implement a different regression test,
+#   this one based on test_queue.FailingQueueTest.
+
 class FailingCloseableQueue(CloseableQueue):
+    """Derivation of CloseableQueue analogous to `test_queue.FailingQueue`."""
     def __init__(self, *args):
         self.fail_next_put = False
         self.fail_next_get = False
@@ -50,6 +56,11 @@ class FailingCloseableQueue(CloseableQueue):
         return CloseableQueue._get(self)
 
 class FailingCloseableQueueTest(FailingQueueTest):
+    """Another regression test class.
+
+    test_queue doesn't implement this for the Lifo and Priority queues,
+      so we don't either.
+    """
     def test_failing_queue(self):
         # Test to make sure a queue is functioning correctly.
         # Done twice to the same instance.
@@ -57,6 +68,8 @@ class FailingCloseableQueueTest(FailingQueueTest):
         self.failing_queue_test(q)
         self.failing_queue_test(q)
 
+
+# Non-regression testing code starts here, with some utility functions.
 
 def put_iterable(q, it, putargs={}, close=-1, last=-1):
     """Puts the iterable to the queue `q`.
@@ -73,17 +86,28 @@ def put_iterable(q, it, putargs={}, close=-1, last=-1):
         close -= 1
         last -= 1
     return ret
+
 def get_iterable(q, getargs={}, count=-1):
+    """The converse of put_iterable; also used in test functions."""
     while True:
         if count == 0:
             break
         yield q.get(**getargs)
         count -= 1
+
 def get_tuple(q, getargs={}, count=-1):
+    """Wrapper function for get_iterable to be passed to threads and such."""
     return tuple(get_iterable(q, getargs, count))
 
+
 class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
+    """The main test suite for the closeability functionality."""
     type2test = CloseableQueue
+    # Sorting method to accomodate Lifo/Priority queues in a more sensible way
+    #   than that used in `test_queue.BaseTestCase`.
+    # This method is applied to tuples of expected values
+    #   so they will match the result of putting and then getting those values.
+    tuple_sort = tuple
 
     def setUp(self):
         # set up cumulative counts for `test_join_after_close`
@@ -96,11 +120,11 @@ class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
         q = self.type2test()
         # To ensure that the last is actually put before we start the get,
         #   we do this manually, without threads.
-        q.put(1)
         q.put(2)
+        q.put(1)
         q.put(3, last=True)
         result = get_tuple(q, {'block': False}, 3)
-        self.assertEqual((1, 2, 3), result)
+        self.assertEqual(self.tuple_sort((2, 1, 3)), result)
 
     def test_take_until_after_last(self):
         """`Get` after a last `put`.
@@ -235,6 +259,9 @@ class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
 
 class QueueIterationTest(unittest.TestCase, BlockingTestMixin):
     """Tests the `enqueue` and `dequeue` functions."""
+    type2test = CloseableQueue
+    tuple_sort = tuple
+
     @staticmethod
     def dequeue_to_tuple(q, getargs={'timeout': 0.2}, on_empty='raise'):
         from CloseableQueue import dequeue
@@ -250,7 +277,7 @@ class QueueIterationTest(unittest.TestCase, BlockingTestMixin):
         tup = tuple(it)
         result = self.do_blocking_test(self.dequeue_to_tuple, (q, getargs, on_empty),
                                        enqueue, (it, q, putargs, join, close))
-        self.assertEqual(tup, tuple(result))
+        self.assertEqual(self.tuple_sort(tup), result)
         if close:
             try:
                 q.get(timeout=0.2)
@@ -264,21 +291,21 @@ class QueueIterationTest(unittest.TestCase, BlockingTestMixin):
         self.do_iterable_test(())
 
     def test_nonempty_iterable(self):
-        self.do_iterable_test((1, 2, 3))
+        self.do_iterable_test((2, 1, 3))
 
     def test_timeout_iterable(self):
         q = CloseableQueue()
-        self.do_iterable_test((1, 2, 3), q, on_empty='stop', close=False)
-        self.do_iterable_test((4, 5, 6), q, on_empty='stop', close=False)
-        self.do_iterable_test((7, 8, 9), q, on_empty='stop', close=True)
+        self.do_iterable_test((2, 1, 3), q, on_empty='stop', close=False)
+        self.do_iterable_test((6, 4, 5), q, on_empty='stop', close=False)
+        self.do_iterable_test((9, 8, 7), q, on_empty='stop', close=True)
 
     def test_EnqueueThread(self):
         """Perfunctory test of the EnqueueThread convenience function."""
         from CloseableQueue import EnqueueThread
         q = CloseableQueue()
         result = self.do_blocking_test(self.dequeue_to_tuple, (q, {'timeout': 0.2}),
-                                       EnqueueThread, ((1, 2, 3), q))
-        self.assertEqual((1, 2, 3), result)
+                                       EnqueueThread, ((3, 1, 2), q))
+        self.assertEqual(self.tuple_sort((3, 1, 2)), result)
 
 
 def make_test_suite():
