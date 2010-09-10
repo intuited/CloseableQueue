@@ -37,6 +37,8 @@ Iteration utility functions
 Transformation of iterables to and from queues is made convenient via the
   `enqueue` and `dequeue` functions.
 
+The `EnqueueThread` provides a further layer of convenience.
+
 Although designed to work with Closeable queues,
   these functions can also be meaningfully applied to other Queues.
 

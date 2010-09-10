@@ -235,6 +235,11 @@ class CloseableQueueTest(unittest.TestCase, BlockingTestMixin):
 
 class QueueIterationTest(unittest.TestCase, BlockingTestMixin):
     """Tests the `enqueue` and `dequeue` functions."""
+    @staticmethod
+    def dequeue_to_tuple(q, getargs={'timeout': 0.2}, on_empty='raise'):
+        from CloseableQueue import dequeue
+        return tuple(dequeue(q, getargs, on_empty))
+
     def do_iterable_test(self, it, q=None,
                          getargs={'timeout': 0.2}, putargs={'timeout': 0.2},
                          on_empty='raise', join=False, close=True):
@@ -243,9 +248,7 @@ class QueueIterationTest(unittest.TestCase, BlockingTestMixin):
         if q is None:
             q = CloseableQueue()
         tup = tuple(it)
-        def dequeue_to_tuple():
-            return tuple(dequeue(q, getargs, on_empty))
-        result = self.do_blocking_test(dequeue_to_tuple, (),
+        result = self.do_blocking_test(self.dequeue_to_tuple, (q, getargs, on_empty),
                                        enqueue, (it, q, putargs, join, close))
         self.assertEqual(tup, tuple(result))
         if close:
@@ -268,6 +271,15 @@ class QueueIterationTest(unittest.TestCase, BlockingTestMixin):
         self.do_iterable_test((1, 2, 3), q, on_empty='stop', close=False)
         self.do_iterable_test((4, 5, 6), q, on_empty='stop', close=False)
         self.do_iterable_test((7, 8, 9), q, on_empty='stop', close=True)
+
+    def test_EnqueueThread(self):
+        """Perfunctory test of the EnqueueThread convenience function."""
+        from CloseableQueue import EnqueueThread
+        q = CloseableQueue()
+        result = self.do_blocking_test(self.dequeue_to_tuple, (q, {'timeout': 0.2}),
+                                       EnqueueThread, ((1, 2, 3), q))
+        self.assertEqual((1, 2, 3), result)
+
 
 def make_test_suite():
     from unittest import TestSuite, defaultTestLoader

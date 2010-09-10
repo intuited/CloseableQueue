@@ -1,12 +1,12 @@
 """Defines the CloseableQueue class and the Close exception class."""
 
-from Queue import Queue, Empty, Full, _time
+from Queue import Queue as _Queue, Empty, Full, _time
 
 class Closed(Exception):
     """Exception raised by CloseableQueue.put/get on a closed queue."""
     pass
 
-class CloseableQueue(Queue):
+class CloseableQueue(_Queue):
     """This class provides a means to permanently close a queue.
 
     Attempts to `put` to a closed queue will raise the `Closed` exception.
@@ -23,7 +23,7 @@ class CloseableQueue(Queue):
       the close will only take place if the put succeeds.
     """
     def __init__(self, *args, **kwargs):
-        Queue.__init__(self, *args, **kwargs)
+        _Queue.__init__(self, *args, **kwargs)
         assert not hasattr(self, '_closed')
         self._closed = False
 
@@ -194,3 +194,35 @@ def enqueue(it, q, putargs={}, join=False, close=True):
         q.close()
     if join:
         q.join()
+
+def EnqueueThread(it, q=None, name='enqueue', start=True, enqueue=enqueue,
+                  **kwargs):
+    """Starts a thread which enqueues the values of the iterable `it`.
+
+    If a queue is not passed, a new one is created.
+
+    A reference to the queue is stored as the property `q`
+      of the returned thread.
+
+    The thread will be started unless `start` is false.
+
+    This is ideal for processing generators
+      and other iterables which lazily process I/O-bound operations.
+
+    Passing the return value of a `dequeue` call will have the effect
+      of creating a processing thread which pulls from and pushes to
+      thread-safe data structures.
+
+    Additional keyword arguments are passed on to `enqueue`.
+    """
+    from threading import Thread
+    if q is None:
+        q = CloseableQueue()
+    thread = Thread(name=name,
+                    target=enqueue,
+                    args=(it, q),
+                    kwargs=kwargs)
+    thread.q = q
+    if start:
+        thread.start()
+    return thread
