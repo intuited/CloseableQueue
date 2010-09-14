@@ -4,6 +4,9 @@
 The `CloseableQueue` module includes the `Closeable*Queue` classes
   as well as the `Closed` exception and some utility functions.
 
+These classes and functions provide the facility to close a queue
+  and to use it as an iterator.
+
 
 The `Closeable*Queue` classes
 -----------------------------
