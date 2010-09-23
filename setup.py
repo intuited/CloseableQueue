@@ -1,4 +1,8 @@
-from distutils.core import setup
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
+
 from textwrap import dedent, fill
 
 def format_desc(desc):
@@ -6,6 +10,13 @@ def format_desc(desc):
 
 def format_classifiers(classifiers):
     return dedent(classifiers).strip().split('\n')
+
+def split_keywords(keywords):
+    return dedent(keywords).strip().replace('\n', ' ').split(' ')
+
+def file_contents(filename):
+    with open(filename) as f:
+        return f.read()
 
 setup(
     name = "CloseableQueue",
@@ -17,6 +28,7 @@ setup(
         These classes and functions provide the facility to close a queue
         and to use it as an iterator.
         """),
+    long_description = file_contents('README.rst'),
     classifiers = format_classifiers("""
         Development Status :: 4 - Beta
         Intended Audience :: Developers
@@ -27,7 +39,8 @@ setup(
         Topic :: Software Development :: Libraries :: Python Modules
         Topic :: Utilities
         """),
-    keywords = 'queue threading iterator iterable'.split(' '),
-    packages = ['CloseableQueue'],
+    keywords = split_keywords('queue multithreading threading iterator iterable iteration')
+    packages = ['CloseableQueue', 'CloseableQueue.test'],
     package_dir = {'CloseableQueue': ''},
+    test_suite = 'CloseableQueue.test.make_test_suite',
     )
