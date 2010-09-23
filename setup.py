@@ -39,7 +39,7 @@ setup(
         Topic :: Software Development :: Libraries :: Python Modules
         Topic :: Utilities
         """),
-    keywords = split_keywords('queue multithreading threading iterator iterable iteration')
+    keywords = split_keywords('queue multithreading threading iterator iterable iteration'),
     packages = ['CloseableQueue', 'CloseableQueue.test'],
     package_dir = {'CloseableQueue': ''},
     test_suite = 'CloseableQueue.test.make_test_suite',

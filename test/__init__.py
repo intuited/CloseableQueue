@@ -4,8 +4,8 @@ These tests build on the unit tests provided for the Queue module.
 
 That module's test code should be included in the file `test_queue.py`.
 """
-from test_queue import BlockingTestMixin, BaseQueueTest
-from test_queue import FailingQueue, FailingQueueTest
+from CloseableQueue.test.test_queue import BlockingTestMixin, BaseQueueTest
+from CloseableQueue.test.test_queue import FailingQueue, FailingQueueTest
 from CloseableQueue import CloseableQueue, Closed
 from CloseableQueue import CloseableLifoQueue, CloseablePriorityQueue
 import unittest
