@@ -20,7 +20,7 @@ def file_contents(filename):
 
 setup(
     name = "CloseableQueue",
-    version = "0.9",
+    version = "0.9.1",
     author = "Ted Tibbetts",
     author_email = "intuited@gmail.com",
     url = "http://github.com/intuited/CloseableQueue",
@@ -28,7 +28,7 @@ setup(
         These classes and functions provide the facility to close a queue
         and to use it as an iterator.
         """),
-    long_description = file_contents('README.rst'),
+    long_description = file_contents('README.txt'),
     classifiers = format_classifiers("""
         Development Status :: 4 - Beta
         Intended Audience :: Developers
@@ -39,8 +39,11 @@ setup(
         Topic :: Software Development :: Libraries :: Python Modules
         Topic :: Utilities
         """),
-    keywords = split_keywords('queue multithreading threading iterator iterable iteration'),
-    packages = ['CloseableQueue', 'CloseableQueue.test'],
+    keywords = split_keywords("""
+        queue multithreading threading iterator iterable iteration
+        """),
+    py_modules = ['CloseableQueue'],
+    packages = ['CloseableQueue.test'],
     package_dir = {'CloseableQueue': ''},
-    test_suite = 'CloseableQueue.test.make_test_suite',
+    test_suite = 'test.make_test_suite',
     )

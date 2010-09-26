@@ -1,13 +1,21 @@
 """Tests for the CloseableQueue class.
 
-These tests build on the unit tests provided for the Queue module.
+These tests build on the unit tests provided for the Queue module
+in order to perform on the CloseableQueue queue classes
+both regression testing of basic queue functionality
+and testing of the added functionality.
 
-That module's test code should be included in the file `test_queue.py`.
+The ``Queue`` module's test code is included in the file ``test_queue.py``.
+That file is taken from the test suite for Python 2.6.5.
+
+This distribution also includes the file ``test_support``,
+taken from Python 2.6.5's ``test`` regression tests module.
+``test_support`` is required by ``test_queue``.
 """
-from CloseableQueue.test.test_queue import BlockingTestMixin, BaseQueueTest
-from CloseableQueue.test.test_queue import FailingQueue, FailingQueueTest
 from CloseableQueue import CloseableQueue, Closed
 from CloseableQueue import CloseableLifoQueue, CloseablePriorityQueue
+from test_queue import BlockingTestMixin, BaseQueueTest
+from test_queue import FailingQueue, FailingQueueTest
 import unittest
 
 # Because the method queue_test.BaseQueueTest.simple_queue_test
@@ -16,11 +24,12 @@ import unittest
 # In order to avoid Heisenbugs, we don't create new classes;
 #   we just rename the existing ones during the test.
 def base_queue_class_name(cls):
-    """Come up with the base queue class name by removing "*able"."""
+    """Provide the base queue class name by removing "*able"."""
     cls_name = cls.__name__
     return cls_name[cls_name.index('able') + 4:]
 
 class RenamingBaseQueueTest(BaseQueueTest):
+    """Rename Queue.*-derived class instances for the duration of the tests."""
     def setUp(self):
         assert not hasattr(self, '_old_typename')
         self._old_typename = self.type2test.__name__
@@ -30,6 +39,7 @@ class RenamingBaseQueueTest(BaseQueueTest):
     def tearDown(self):
         super(RenamingBaseQueueTest, self).tearDown()
         self.type2test.__name__ = self._old_typename
+        del self._old_typename
 
 
 class RegressionCloseableQueueTest(RenamingBaseQueueTest):
