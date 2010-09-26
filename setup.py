@@ -20,7 +20,7 @@ def file_contents(filename):
 
 setup(
     name = "CloseableQueue",
-    version = "0.9.1",
+    version = "0.9.1.1",
     author = "Ted Tibbetts",
     author_email = "intuited@gmail.com",
     url = "http://github.com/intuited/CloseableQueue",

@@ -31,7 +31,7 @@ and their methods.
 
 
 ``CloseableQueueFactory``
------------------------
+-------------------------
 
 This factory function is used to create the ``Closeable*Queue`` classes.
 
